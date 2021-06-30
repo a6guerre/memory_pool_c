@@ -41,18 +41,13 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
 {
   mem_header *header = (mem_header *)pool->buf;
   uint8_t *ptr = (uint8_t *)pool->buf;
+  // TODO: add NULL checks
 
-  mem_header *old_header = header;
   while(!header->is_free)
   {
     printf("header next is at %x\n", header->next);
     printf("header is at %x\n", header);
-    //this fixes the issue
-    uint8_t *iter_pointer = (uint8_t*)header + header->size + sizeof(mem_header);
-    printf("header is at %x\n", iter_pointer); 
-    header = (mem_header *)iter_pointer;
-
-    //it should really be: header = header->next, header->next ends up pointing to somewhere way off 
+    header = header->next;
     if(header == NULL)
     {
       return NULL;
@@ -70,20 +65,15 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     new_header->size = remaining_size - sizeof(mem_header);
     new_header->prev = header;
     
-    ptr = (uint8_t *)header;
-    printf("ptr before: %x\n", ptr);
     ptr = (uint8_t *)header + sizeof(mem_header) + header->size;
-    printf("ptr after: %x\n", ptr);
 
     memcpy(ptr, new_header, sizeof(mem_header));
     header->next = (mem_header *)ptr;
-    mem_header *verify_header = header->next;
-    printf("%x\n", header->next); // this matches up with ptr, which is good.
-  
     pool->free_size -= sizeof(mem_header);
   } 
 
   uint8_t *buf = (uint8_t*)header + sizeof(mem_header);
+  // my mistake was here, I had (uint8_t*)header + header->size;
 
   return (void *)buf;
 }
