@@ -39,7 +39,7 @@ void mp_mem_dump(mem_pool * const pool)
   mem_header *hdr = (mem_header *)pool->buf;
   while(hdr != NULL)
   {
-    printf("Header at: %x\nPrev Header at: %x\nNext Header at: %x\n", hdr, hdr->prev, hdr->next);
+    printf("Header at: %p\nPrev Header at: %p\nNext Header at: %p\n", hdr, hdr->prev, hdr->next);
     printf("Block is free: %d\n", hdr->is_free);
     uint8_t *buf = (uint8_t*)hdr + sizeof(mem_header);
 
