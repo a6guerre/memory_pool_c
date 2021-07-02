@@ -85,6 +85,7 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     mem_header *new_header = (mem_header *) ptr;
     new_header->is_free = 1;
     new_header->size = remaining_size - sizeof(mem_header);
+    new_header->next = NULL;
     new_header->prev = header;
 
     header->next = new_header;
