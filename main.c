@@ -30,6 +30,31 @@ int main(void)
     printf("%d\n", *buf2);
     ++buf2;
   }
+  uint8_t arr2[] = {0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x20};
+
+  uint8_t *buf3 = mp_malloc(pool, 10);
+
+  memcpy(buf3, arr2, 10);
+
+  for(int i = 0; i < 10; ++i)
+  {
+    printf("%d\n", *buf3);
+    ++buf3;
+  }
   //trivial examples for now, will add more rigorous unit tests
+  mp_mem_dump(pool);
+ /* buf -=10;
+  mp_free(buf, pool);
+  mp_mem_dump(pool);
+  */
+  buf2 -=10;
+  mp_free(buf2, pool);
+  mp_mem_dump(pool);
+  
+  buf3 -= 10;
+  mp_free(buf3, pool);
+  mp_mem_dump(pool);
+
+
   return 0;
 }
