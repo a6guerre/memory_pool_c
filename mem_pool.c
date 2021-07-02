@@ -91,10 +91,8 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     pool->free_size -= sizeof(mem_header);
   } 
 
-  uint8_t *buf = (uint8_t*)header + sizeof(mem_header);
   // my mistake was here, I had (uint8_t*)header + header->size;
-
-  return (void *)buf;
+  return (void *)header + sizeof(mem_header);
 }
 
 void mp_free(void *buf, mem_pool * const pool){
