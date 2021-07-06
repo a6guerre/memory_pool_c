@@ -39,7 +39,7 @@ void mp_mem_dump(mem_pool * const pool)
   mem_header *hdr = (mem_header *)pool->buf;
   while(hdr != NULL)
   {
-    printf("Header at: %x\nPrev Header at: %x\nNext Header at: %x\n", hdr, hdr->prev, hdr->next);
+    printf("Header at: %p\nPrev Header at: %p\nNext Header at: %p\n", hdr, hdr->prev, hdr->next);
     printf("Block is free: %d\n", hdr->is_free);
     uint8_t *buf = (uint8_t*)hdr + sizeof(mem_header);
 
@@ -85,16 +85,15 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     mem_header *new_header = (mem_header *) ptr;
     new_header->is_free = 1;
     new_header->size = remaining_size - sizeof(mem_header);
+    new_header->next = NULL;
     new_header->prev = header;
 
     header->next = new_header;
     pool->free_size -= sizeof(mem_header);
   } 
 
-  uint8_t *buf = (uint8_t*)header + sizeof(mem_header);
   // my mistake was here, I had (uint8_t*)header + header->size;
-
-  return (void *)buf;
+  return (void *)header + sizeof(mem_header);
 }
 
 void mp_free(void *buf, mem_pool * const pool){
