@@ -65,7 +65,8 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
 
   mem_header *header = (mem_header *)pool->buf;
 
-  while(!header->is_free)
+  // The header must be free, and of adequate size.
+  while(!header->is_free || header->size < size)
   {
     header = header->next;
     if(header == NULL)
@@ -79,20 +80,20 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
   pool->free_size -= size;
 
   uint8_t remaining_size = pool->free_size - sizeof(mem_header);
+  uint32_t seperation = (header->next == NULL)?0xFFFFFF : header->next - header;
   if(remaining_size > sizeof(mem_header))
   {  
     uint8_t* ptr = (uint8_t *)header + sizeof(mem_header) + header->size;
     mem_header *new_header = (mem_header *) ptr;
     new_header->is_free = 1;
     new_header->size = remaining_size - sizeof(mem_header);
-    new_header->next = NULL;
+    new_header->next = header->next; // in the edge case where the next block is actually there.
     new_header->prev = header;
 
     header->next = new_header;
     pool->free_size -= sizeof(mem_header);
   } 
-
-  // my mistake was here, I had (uint8_t*)header + header->size;
+  
   return (void *)header + sizeof(mem_header);
 }
 
