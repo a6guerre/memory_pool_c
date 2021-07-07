@@ -80,7 +80,7 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
   pool->free_size -= size;
 
   uint8_t remaining_size = pool->free_size - sizeof(mem_header);
-  uint32_t seperation = (header->next == NULL)?0xFFFFFF : header->next - header;
+
   if(remaining_size > sizeof(mem_header))
   {  
     uint8_t* ptr = (uint8_t *)header + sizeof(mem_header) + header->size;
@@ -111,18 +111,18 @@ void mp_free(void *buf, mem_pool * const pool){
   if(prev_free)
   {
     prev_header->size += sizeof(mem_header) + header->size;
-    pool->free_size += sizeof(mem_header); 
+    pool->free_size += sizeof(mem_header) + header->size;
     prev_header->next = next_header;
 
     if(next_header != NULL)
-    {
       next_header->prev = prev_header;
-    }
+
     if(next_free)
     {
-      prev_header->size += sizeof(mem_header) + next_header->size;
-      pool->free_size += sizeof(mem_header); 
+      pool->free_size += sizeof(mem_header);
       prev_header->next = next_header->next;
+      prev_header->size += next_header->size + sizeof(mem_header);
+
       if(next_header->next != NULL)
         next_header->next->prev = prev_header;
     }
@@ -135,9 +135,7 @@ void mp_free(void *buf, mem_pool * const pool){
     pool->free_size += sizeof(mem_header);
     header->next = next_header->next;
     if(next_header->next != NULL)
-    {
       next_header->next->prev = header;
-    }
     return;
   }
   // update pool size
