@@ -18,7 +18,7 @@ void test_2(mem_pool *pool)
   }
   buf -= 10;
 
-  uint8_t *buf2 = mp_malloc(pool, 10);
+  uint8_t *buf2 = mp_malloc(pool, 50);
   
   memcpy(buf2, arr, 10);
 
@@ -33,8 +33,16 @@ void test_2(mem_pool *pool)
 
   memcpy(buf3, arr2, 10);
   mp_mem_dump(pool);
-  mp_realloc(buf, pool, 20);
-  //mp_mem_dump(pool);
+  buf2 -= 10;
+  mp_free(buf2, pool);
+  mp_mem_dump(pool);
+  mp_realloc(buf, pool, 60);
+  mp_mem_dump(pool);
+    //mp_mem_dump(pool);
+  // buf2 -= 10;
+  //mp_realloc(buf2, pool, 20);
+ // mp_mem_dump(pool);
+
 }
 
 void test_1(mem_pool *pool)
@@ -72,13 +80,15 @@ void test_1(mem_pool *pool)
     ++buf3;
   }
   //trivial examples for now, will add more rigorous unit tests
-   buf -=10;
-  mp_free(buf, pool);
+  //buf -=10;
+  //mp_free(buf, pool);
   mp_mem_dump(pool);
   buf2 -=10;
   mp_free(buf2, pool);
   mp_mem_dump(pool);
-  
+  mp_realloc(buf, pool, 20);
+  mp_mem_dump(pool);
+
   //uint8_t *buf4 = mp_malloc(pool, 20);
 /*  buf3 -= 10;
   mp_free(buf3, pool);*/

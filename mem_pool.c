@@ -4,7 +4,8 @@
 #include <string.h>
 #include "mem_pool.h"
 
-static uint32_t compute_write_size(mem_header * header);
+static void *resize_block(mem_header *header, int size_change);
+static void *move_block(mem_pool * const pool, mem_header *header, int size_change);
 
 mem_pool *mp_create(uint32_t size)
 {
@@ -57,6 +58,9 @@ void mp_mem_dump(mem_pool * const pool)
 
 void *mp_malloc(mem_pool * const pool, uint32_t size)
 {
+  mem_header *header = (mem_header *)pool->buf;
+  uint8_t remaining_size;
+
   if(pool == NULL)
   { 
     return NULL;
@@ -65,8 +69,6 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
   {
     return NULL;
   }
-
-  mem_header *header = (mem_header *)pool->buf;
 
   // The header must be free, and of adequate size.
   while(!header->is_free || header->size < size)
@@ -78,12 +80,11 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     }
   }
 
+  remaining_size = header->size - size;
   header->is_free = 0;
   header->size = size;
   
   pool->free_size -= size;
-
-  uint8_t remaining_size = pool->free_size - sizeof(mem_header);
 
   if(remaining_size > sizeof(mem_header))
   {  
@@ -96,8 +97,7 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
 
     header->next = new_header;
     pool->free_size -= sizeof(mem_header);
-  } 
-  printf("header size %d\n", header->size);
+  }  
   return (void *)header + sizeof(mem_header);
 }
 
@@ -107,7 +107,6 @@ void mp_free(void *buf, mem_pool * const pool){
   mem_header *header = (mem_header *)ptr;
   uint8_t next_free = (header->next != NULL)? header->next->is_free : 0;
   uint8_t prev_free = (header->prev != NULL)? header->prev->is_free : 0;
-  printf("%d\n", prev_free);
 
   mem_header *prev_header = header->prev;
   mem_header *next_header = header->next;
@@ -147,73 +146,74 @@ void mp_free(void *buf, mem_pool * const pool){
   header->is_free = 1;
 }
 
-void mp_realloc(void *buf, mem_pool * const pool, uint32_t new_size)
+void *mp_realloc(void *buf, mem_pool * const pool, uint32_t new_size)
 {
   uint8_t *ptr = (uint8_t *)buf - sizeof(mem_header);
   mem_header *header = (mem_header *)ptr;
-
-  int size_change = (int) ((uint32_t)new_size - (uint32_t)header->size);
-  printf("size change %d\n", header->size);
-
-  if(size_change > pool->free_size)
-    return;
-
-  header->size = new_size;
-  header = header->next;
-  ptr = (uint8_t *)header + size_change;
-
-  //compute write size
-  uint32_t write_size = compute_write_size(header);
-
-  if(size_change > 0)
-    write_size -= size_change;
-
-  printf("write size: %d\n", write_size);
-  memmove(ptr, header, write_size);
+  mem_header *next_hdr = header->next;
+  uint8_t *result = (uint8_t *)buf;
+  int size_change = new_size - header->size;
+  int remaining_size = next_hdr->size - size_change;
   
-  header = (mem_header *) ptr;
-
-  int i = 0;
-  while(header->next != NULL)
+  if(next_hdr->is_free == 1 && remaining_size > sizeof(mem_header))
   {
-    ptr = (uint8_t *)header->next + size_change;
-    header->next = (mem_header *)ptr;
-    if(i > 0)
+    if(size_change != 0)
     {
-      header->prev = (mem_header *)((uint8_t *)header->prev + size_change);
+       result = (uint8_t*)resize_block(header, size_change); 
     }
     else
     {
-      header->prev->next = header;
+      return (void *)result;
     }
-    header = header->next;
-    ++i;
   }
-
-  pool->free_size -= size_change;
-  
-  if(header->is_free)
+  else
   {
-    header->size -= size_change;
-    header->prev = (mem_header *)((uint8_t *)header->prev + size_change);
+    result = (uint8_t*)move_block(pool, header, size_change);
   }
-  mp_mem_dump(pool);
+  return (void *)result;
 }
 
-static uint32_t compute_write_size(mem_header * header)
+static void *resize_block(mem_header *header, int size_change)
 {
-  uint32_t write_size = 0;
-  if(header == NULL)
-    return write_size;
+  uint8_t *result = (uint8_t *) ((uint8_t *)header + sizeof(mem_header));
+  mem_header *source = header->next;
+  mem_header *dest = (mem_header *)((uint8_t *)result + header->size + size_change);
+  int remaining_size = source->size - size_change;
 
-  write_size += header->size + sizeof(mem_header);
-
-  while(header->next != NULL)
+  if(remaining_size > sizeof(mem_header))
   {
-    header = header->next;
-    write_size += header->size + sizeof(mem_header);
-    printf("we're here\n");
-  }
+    memmove(dest, source, sizeof(mem_header));
+    if(size_change > 0)
+    {
+      dest->size += size_change;
+    }
+    else
+    {
+      dest->size -= size_change;
+    }
+    header->next = dest;
+    header->size += size_change;
+  
+    if(dest->next != NULL)
+    {
+      dest->next->prev = dest;
 
-  return write_size;
+    }
+  }
+  
+  return (void *)result;
+}
+
+static void *move_block(mem_pool * const pool, mem_header *header, int size_change)
+{
+  uint8_t *result = (uint8_t *)mp_malloc(pool, header->size + size_change);
+  void *buf = (void *)((uint8_t *)header + sizeof(mem_header)); 
+
+  if(result == NULL)
+  {
+    return buf;
+  }
+  
+  mp_free(buf, pool);
+  return result;
 }

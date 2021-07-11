@@ -22,6 +22,7 @@ typedef struct memory_header
 mem_pool *mp_create(uint32_t size);
 void *mp_malloc(mem_pool * const pool, uint32_t size);
 void mp_free(void *buf, mem_pool * const pool);
+void *mp_realloc(void *buf, mem_pool * const pool, uint32_t new_size);
 void mp_mem_dump(mem_pool * const pool);
 
 #endif
