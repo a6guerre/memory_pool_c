@@ -4,6 +4,8 @@
 #include <string.h>
 #include "mem_pool.h"
 
+#define MEMPOOL_ERR(fmt, ...)	fprintf(stderr, "%s: " fmt, __func__, ##__VA_ARGS__)
+
 static void *resize_block(mem_header *header, int size_change);
 static void *move_block(mem_pool * const pool, mem_header *header, int size_change);
 
@@ -12,12 +14,14 @@ mem_pool *mp_create(uint32_t size)
   mem_pool *pool = malloc(sizeof(mem_pool));
   if(pool == NULL)
   {
+    MEMPOOL_ERR("pool allocation failed!\n");
     return NULL;
   }
 
   pool->buf = malloc(size);
   if(pool->buf == NULL)
   {
+    MEMPOOL_ERR("buffer allocation failed!\n");
     return NULL;
   }
 
@@ -63,10 +67,12 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
 
   if(pool == NULL)
   { 
+    MEMPOOL_ERR("pool allocation failed!\n");
     return NULL;
   }
   if(size > pool->free_size)
   {
+    MEMPOOL_ERR("requested size=%u exceeds pool size\n", size);
     return NULL;
   }
 
@@ -76,6 +82,7 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     header = header->next;
     if(header == NULL)
     {
+      MEMPOOL_ERR("free header unavailable\n");
       return NULL;
     }
   }
