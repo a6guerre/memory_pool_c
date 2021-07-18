@@ -63,7 +63,7 @@ void mp_mem_dump(mem_pool * const pool)
 void *mp_malloc(mem_pool * const pool, uint32_t size)
 {
   mem_header *header = (mem_header *)pool->buf;
-  uint8_t remaining_size;
+  uint32_t remaining_size;
 
   if(pool == NULL)
   { 
