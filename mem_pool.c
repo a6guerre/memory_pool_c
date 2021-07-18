@@ -224,3 +224,31 @@ static void *move_block(mem_pool * const pool, mem_header *header, int size_chan
   mp_free(buf, pool);
   return result;
 }
+
+int mp_pool_consistent(mem_pool *pool)
+{
+  mem_header *header = pool->buf;
+  mem_header *prev = NULL;
+  uint32_t total_size = 0;
+
+  while (header) {
+    /* account for all memory used by this chunk */
+    total_size += header->size + sizeof(*header);
+
+    if (prev && header->prev != prev) {
+      MEMPOOL_ERR("inconsistent pointers!\n");
+      return -1;
+    }
+
+    prev = header;
+    header = header->next;
+  }
+
+  if (total_size != pool->total_size) {
+    MEMPOOL_ERR("size mismatch! found size=%u pool total_size=%u\n",
+		total_size, pool->total_size);
+    return -1;
+  }
+
+  return 0;
+}
