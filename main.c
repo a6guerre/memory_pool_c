@@ -96,6 +96,39 @@ void test_1(mem_pool *pool)
 
 }
 
+static int test_create_large()
+{
+  mem_pool *pool = mp_create(2048);
+  void *buf1, *buf2, *buf3;
+  int ret = 0;
+
+  buf1 = mp_malloc(pool, 256);
+  if (!buf1)
+    return -1;
+
+  buf2 = mp_malloc(pool, 256);
+  if (!buf2) {
+    goto free_1;
+    ret = -1;
+  }
+
+  buf3 = mp_malloc(pool, 256);
+  if (!buf3) {
+    goto free_2;
+    ret = -1;
+  }
+
+  ret = mp_pool_consistent(pool);
+
+  mp_free(buf3, pool);
+free_2:
+  mp_free(buf2, pool);
+free_1:
+  mp_free(buf1, pool);
+
+  return ret;
+}
+
 int main(void)
 {
   mem_pool *pool = mp_create(256);
@@ -103,6 +136,9 @@ int main(void)
   //mem_header *header = (mem_header*)pool->buf;
  
   //memcpy(header, pool->buf, sizeof(mem_header));
+
+  if (test_create_large())
+    printf("test_create_large failed\n");
 
   return 0;
 }

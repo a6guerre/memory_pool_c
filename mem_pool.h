@@ -25,4 +25,6 @@ void mp_free(void *buf, mem_pool * const pool);
 void *mp_realloc(void *buf, mem_pool * const pool, uint32_t new_size);
 void mp_mem_dump(mem_pool * const pool);
 
+int mp_pool_consistent(mem_pool *pool);
+
 #endif

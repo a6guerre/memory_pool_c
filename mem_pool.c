@@ -4,6 +4,8 @@
 #include <string.h>
 #include "mem_pool.h"
 
+#define MEMPOOL_ERR(fmt, ...)	fprintf(stderr, "%s: " fmt, __func__, ##__VA_ARGS__)
+
 static void *resize_block(mem_header *header, int size_change);
 static void *move_block(mem_pool * const pool, mem_header *header, int size_change);
 
@@ -12,12 +14,14 @@ mem_pool *mp_create(uint32_t size)
   mem_pool *pool = malloc(sizeof(mem_pool));
   if(pool == NULL)
   {
+    MEMPOOL_ERR("pool allocation failed!\n");
     return NULL;
   }
 
   pool->buf = malloc(size);
   if(pool->buf == NULL)
   {
+    MEMPOOL_ERR("buffer allocation failed!\n");
     return NULL;
   }
 
@@ -59,14 +63,16 @@ void mp_mem_dump(mem_pool * const pool)
 void *mp_malloc(mem_pool * const pool, uint32_t size)
 {
   mem_header *header = (mem_header *)pool->buf;
-  uint8_t remaining_size;
+  uint32_t remaining_size;
 
   if(pool == NULL)
   { 
+    MEMPOOL_ERR("pool allocation failed!\n");
     return NULL;
   }
   if(size > pool->free_size)
   {
+    MEMPOOL_ERR("requested size=%u exceeds pool size\n", size);
     return NULL;
   }
 
@@ -76,6 +82,7 @@ void *mp_malloc(mem_pool * const pool, uint32_t size)
     header = header->next;
     if(header == NULL)
     {
+      MEMPOOL_ERR("free header unavailable\n");
       return NULL;
     }
   }
@@ -216,4 +223,32 @@ static void *move_block(mem_pool * const pool, mem_header *header, int size_chan
   
   mp_free(buf, pool);
   return result;
+}
+
+int mp_pool_consistent(mem_pool *pool)
+{
+  mem_header *header = pool->buf;
+  mem_header *prev = NULL;
+  uint32_t total_size = 0;
+
+  while (header) {
+    /* account for all memory used by this chunk */
+    total_size += header->size + sizeof(*header);
+
+    if (prev && header->prev != prev) {
+      MEMPOOL_ERR("inconsistent pointers!\n");
+      return -1;
+    }
+
+    prev = header;
+    header = header->next;
+  }
+
+  if (total_size != pool->total_size) {
+    MEMPOOL_ERR("size mismatch! found size=%u pool total_size=%u\n",
+		total_size, pool->total_size);
+    return -1;
+  }
+
+  return 0;
 }
