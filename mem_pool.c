@@ -192,11 +192,11 @@ static void *resize_block(mem_header *header, int size_change)
     memmove(dest, source, sizeof(mem_header));
     if(size_change > 0)
     {
-      dest->size += size_change;
+      dest->size -= size_change;
     }
     else
     {
-      dest->size -= size_change;
+      dest->size += size_change;
     }
     header->next = dest;
     header->size += size_change;
